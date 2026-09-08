@@ -147,13 +147,14 @@ describe('renderAnalysisMarkdown', () => {
     expect(result.analysis.display?.label).toBe('kg');
     expect(renderAnalysisMarkdown(result.analysis)).not.toMatch(/\$0\.00/);
 
-    // A mid-range price settles on the 100 g rung instead.
+    // 90c per kilo: the 100 g rung would print $0.09, which is only one
+    // significant figure, so the ladder keeps climbing.
     const midRange = analyseValue(
       { label: 'Sack', totalPrice: 18, unitsInPack: 1, baseTotal: 20_000, dimension: 'mass' },
       { label: 'Bag', totalPrice: 3.5, unitsInPack: 1, baseTotal: 1000, dimension: 'mass' },
     );
     if (!midRange.ok) throw new Error('expected success');
-    expect(midRange.analysis.display?.label).toBe('100 g');
+    expect(midRange.analysis.display?.label).toBe('kg');
     expect(renderAnalysisMarkdown(midRange.analysis)).not.toMatch(/\$0\.00/);
   });
 });

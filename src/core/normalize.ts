@@ -103,10 +103,12 @@ const LADDERS: Record<Exclude<Dimension, 'count'>, LadderStep[]> = {
 /**
  * Pick the quantum a group's unit prices are quoted in.
  *
- * Unit prices are always shown to exactly two decimals, so the quantum is
- * chosen as the smallest one that keeps the cheapest item above a cent. That
- * honours "round strictly to two decimal places" without ever printing the
- * useless `$0.00` that rounding a per-gram price would otherwise produce.
+ * Unit prices are always shown to exactly two decimals, which means the quantum
+ * decides how much resolution survives. Quoting olive oil per millilitre prints
+ * `$0.01` for every bottle on the shelf — technically non-zero, useless for
+ * comparing. So the ladder climbs until the cheapest item reaches a dime, where
+ * two decimals still carry two significant figures, and only falls back to the
+ * weaker "at least a cent" rule when nothing on the ladder gets that far.
  */
 export function chooseDisplayBase(
   dimension: Dimension,
@@ -128,7 +130,9 @@ export function chooseDisplayBase(
     return { dimension, factor: first.factor, label: first.label, baseLabel };
   }
 
-  const step = ladder.find((candidate) => cheapest * candidate.factor >= 0.01) ?? fallback;
+  const step = ladder.find((candidate) => cheapest * candidate.factor >= 0.1)
+    ?? ladder.find((candidate) => cheapest * candidate.factor >= 0.01)
+    ?? fallback;
   return { dimension, factor: step.factor, label: step.label, baseLabel };
 }
 

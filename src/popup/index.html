@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Price Per Dollar</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="brand"><span class="mark">$</span><span>Price Per Dollar</span></div>
+      <button id="rescan" class="ghost" type="button">Rescan</button>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab-button is-active" role="tab" data-tab="scan" type="button">This page</button>
+      <button class="tab-button" role="tab" data-tab="calculator" type="button">Calculator</button>
+      <button class="tab-button" role="tab" data-tab="settings" type="button">Settings</button>
+    </nav>
+
+    <main>
+      <section id="panel-scan" class="panel-tab" role="tabpanel">
+        <p id="scan-status" class="status">Scanning this page…</p>
+        <div id="scan-results"></div>
+      </section>
+
+      <section id="panel-calculator" class="panel-tab is-hidden" role="tabpanel">
+        <p class="prose">
+          Work out the true value of a bulk buy against a single item. Sizes are optional —
+          leave them blank to compare per item only.
+        </p>
+
+        <fieldset>
+          <legend>Bulk option</legend>
+          <label>Label <input id="bulk-label" type="text" value="Bulk case" autocomplete="off"></label>
+          <label>Bulk total price <input id="bulk-price" type="number" min="0" step="0.01" value="18.99"></label>
+          <label>Number of units in case <input id="bulk-units" type="number" min="1" step="1" value="24"></label>
+          <div class="size-row">
+            <label>Size of one unit <input id="bulk-size" type="number" min="0" step="any" value="12"></label>
+            <label class="unit-label">Unit <select id="bulk-unit"></select></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Single-item option</legend>
+          <label>Label <input id="single-label" type="text" value="Single item" autocomplete="off"></label>
+          <label>Single item price <input id="single-price" type="number" min="0" step="0.01" value="1.79"></label>
+          <label>Number of units <input id="single-units" type="number" min="1" step="1" value="1"></label>
+          <div class="size-row">
+            <label>Size of one unit <input id="single-size" type="number" min="0" step="any" value="12"></label>
+            <label class="unit-label">Unit <select id="single-unit"></select></label>
+          </div>
+        </fieldset>
+
+        <div id="calculator-output" class="analysis"></div>
+        <div class="actions">
+          <button id="calculator-copy" class="primary" type="button">Copy report</button>
+        </div>
+      </section>
+
+      <section id="panel-settings" class="panel-tab is-hidden" role="tabpanel">
+        <label class="switch"><input id="set-badges" type="checkbox"> Show unit-price badges on products</label>
+        <label class="switch"><input id="set-highlight" type="checkbox"> Outline the best-value item</label>
+        <label class="switch"><input id="set-summary" type="checkbox"> Show the floating summary</label>
+
+        <label class="field">Comparison scope
+          <select id="set-mode">
+            <option value="smart">Smart groups — compare like with like</option>
+            <option value="page">Whole page — one leaderboard per unit type</option>
+          </select>
+        </label>
+
+        <label class="field">Grouping strictness <span id="set-threshold-value" class="hint"></span>
+          <input id="set-threshold" type="range" min="0.2" max="0.8" step="0.05">
+        </label>
+
+        <label class="field">Measurement system
+          <select id="set-system">
+            <option value="auto">Automatic (from the page)</option>
+            <option value="US">US customary</option>
+            <option value="IMPERIAL">Imperial (UK)</option>
+          </select>
+        </label>
+
+        <div class="site-block">
+          <p class="site-name" id="site-name"></p>
+          <div class="actions">
+            <button id="site-auto" class="ghost" type="button">Always run here</button>
+            <button id="site-toggle" class="ghost" type="button">Disable here</button>
+          </div>
+          <p class="hint" id="site-hint"></p>
+        </div>
+
+        <p class="disclaimer">
+          Everything is calculated in your browser. Price Per Dollar makes no network requests,
+          collects no analytics, and never sees what you browse.
+        </p>
+      </section>
+    </main>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import type { Dimension, DisplayBase } from './types.ts';
+import type { Dimension, DisplayBase, NormalizedItem } from './types.ts';
 import { chooseDisplayBase } from './normalize.ts';
 import {
   formatCurrency, formatMeasure, formatMultiplier, formatPercent, pluralise, round, toFixed,
@@ -226,6 +226,26 @@ export function analyseValue(
       },
       warnings,
     },
+  };
+}
+
+/**
+ * Turn a ranked scan result into a comparison option.
+ *
+ * `base` is taken from the normalized entry rather than the raw quantity,
+ * because grouping may have re-expressed the item under a shared basis — a
+ * pack read as rolls can end up ranked in sheets.
+ */
+export function toComparisonOption(entry: NormalizedItem): ComparisonOption {
+  const quantity = entry.item.quantity;
+  const units = quantity && quantity.packCount > 0 ? quantity.packCount : 1;
+  return {
+    label: entry.item.title,
+    totalPrice: entry.item.price.amount,
+    unitsInPack: units,
+    baseTotal: entry.base,
+    dimension: entry.dimension,
+    countNoun: quantity?.countNoun ?? null,
   };
 }
 
