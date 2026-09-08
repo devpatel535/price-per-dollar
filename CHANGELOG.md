@@ -30,6 +30,16 @@ First release.
   in settings.
 - Per-site controls: grant permanent access, or switch the extension off.
 
+### Store readiness
+
+- Listing images generated from the real interface: five 1280×800 screenshots,
+  a 440×280 promo tile and a 1400×560 marquee.
+- Pre-submission checks gate packaging, covering manifest validity, icon sizes,
+  file references, remote code, MV3 CSP violations, packaging hygiene and
+  listing image dimensions.
+- Field-by-field submission guide with the exact permission justifications,
+  single-purpose statement and data-usage answers.
+
 ### Verified in a real browser
 
 - End-to-end suite loads the built extension into Chromium and drives it

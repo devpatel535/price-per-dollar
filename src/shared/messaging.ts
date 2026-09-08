@@ -29,8 +29,32 @@ export async function sendToTab<T>(tabId: number, message: ToContentMessage): Pr
   }
 }
 
-/** URLs a content script can never run on. */
+/** Pages Chrome refuses to let any extension touch, whatever it asks for. */
+const RESTRICTED = [
+  /^chrome:\/\//i,
+  /^chrome-extension:\/\//i,
+  /^edge:\/\//i,
+  /^about:/i,
+  /^devtools:\/\//i,
+  /^view-source:/i,
+  /^https:\/\/chrome\.google\.com\/webstore/i,
+  /^https:\/\/chromewebstore\.google\.com/i,
+];
+
+export function isRestrictedUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  return RESTRICTED.some((pattern) => pattern.test(url));
+}
+
+/**
+ * Whether a content script could run here.
+ *
+ * A missing URL is not a "no": Chrome redacts `tab.url` until the extension is
+ * invoked, so callers must treat unknown as "try it and see" rather than
+ * refusing outright.
+ */
 export function isInjectableUrl(url: string | undefined): boolean {
   if (!url) return false;
+  if (isRestrictedUrl(url)) return false;
   return /^https?:\/\//i.test(url);
 }

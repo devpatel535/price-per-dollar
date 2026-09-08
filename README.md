@@ -222,6 +222,8 @@ npm run test           # builds, then runs the suite
 npm run typecheck      # tsc --noEmit
 npm run verify         # typecheck + test
 npm run e2e            # load the extension into real Chromium and drive it
+npm run store:assets   # regenerate the listing images in store/assets/
+npm run verify:package # Chrome Web Store pre-submission checks
 npm run icons          # regenerate assets/icons from the vector mark
 node tools/generate-icons.mjs --preview 32   # ASCII preview of the icon
 ```
@@ -262,6 +264,28 @@ src/
 `core/` is deliberately free of DOM and extension APIs — the arithmetic users
 trust us with is testable in isolation from the messy business of scraping
 retail pages.
+
+## Publishing to the Chrome Web Store
+
+[`store/SUBMISSION.md`](store/SUBMISSION.md) is a field-by-field walkthrough of
+the submission, with the exact text to paste into every box: permission
+justifications, the single-purpose statement, the data-usage answers, and what
+to do if a review comes back.
+
+```bash
+npm run package        # build, verify, and write release/price-per-dollar-<version>.zip
+npm run store:assets   # 1280x800 screenshots, promo tile, marquee
+```
+
+`npm run package` will not produce a zip unless the pre-submission checks pass.
+They cover the things the store rejects for: a malformed manifest, a missing or
+wrongly-sized icon, a dangling file reference, remote code, inline script under
+the MV3 CSP, source maps or stray files in the package, and listing images at
+the wrong dimensions.
+
+Two things are yours to do and cannot be done from here: creating the developer
+account (with its one-time US $5 fee), and putting `PRIVACY.md` at a publicly
+reachable URL. Step 1 of the submission guide covers the latter.
 
 ## Limitations
 

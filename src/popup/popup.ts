@@ -1,6 +1,8 @@
 import type { ItemGroup, NormalizedItem, ScanSummary } from '../core/types.ts';
 import type { ScanResponse } from '../shared/messaging.ts';
-import { CONTENT_SCRIPT_FILE, isInjectableUrl, sendToTab } from '../shared/messaging.ts';
+import {
+  CONTENT_SCRIPT_FILE, isInjectableUrl, isRestrictedUrl, sendToTab,
+} from '../shared/messaging.ts';
 import { loadSettings, saveSettings, type Settings } from '../shared/settings.ts';
 import {
   analyseValue, renderAnalysisMarkdown, toComparisonOption, type ComparisonOption,
@@ -134,28 +136,50 @@ function renderSummary(summary: ScanSummary): void {
   }
 }
 
+/** Say what actually went wrong when the scanner could not be injected. */
+function explainInjectionFailure(url: string | undefined): string {
+  if (url && isRestrictedUrl(url)) {
+    return 'Chrome does not allow extensions to run on this page.';
+  }
+  if (url && !isInjectableUrl(url)) {
+    return 'Price Per Dollar only works on ordinary web pages.';
+  }
+  return 'Chrome blocked access to this page. Open Price Per Dollar from the '
+    + 'toolbar icon, or use "Always run here" in Settings to grant this site access.';
+}
+
 async function runScan(): Promise<void> {
   setStatus('Scanning this page…');
   $('scan-results').textContent = '';
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id || !isInjectableUrl(tab.url)) {
-    setStatus('Open a shopping page to scan it.', true);
+  if (!tab?.id) {
+    setStatus('No active tab to scan.', true);
     return;
   }
   activeTabId = tab.id;
   try {
-    activeHost = new URL(tab.url ?? '').hostname;
+    activeHost = tab.url ? new URL(tab.url).hostname : '';
   } catch {
     activeHost = '';
   }
   renderSiteControls();
 
+  // Chrome hides `tab.url` until the extension has been invoked, so a missing
+  // URL says nothing about whether the page can be scanned. Only refuse when
+  // we can see the URL and know it is off-limits; otherwise just try, and let
+  // the failure explain itself.
+  if (tab.url && !isInjectableUrl(tab.url)) {
+    setStatus(explainInjectionFailure(tab.url), true);
+    return;
+  }
+
   try {
-    // `activeTab` grants access for this tab because the user opened the popup.
+    // Opening the popup grants `activeTab` for this tab, which is what lets
+    // this injection succeed without any host permission.
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: [CONTENT_SCRIPT_FILE] });
   } catch (error) {
-    setStatus('Chrome will not allow scanning this page.', true);
+    setStatus(explainInjectionFailure(tab.url), true);
     console.warn('[Price Per Dollar] injection failed', error);
     return;
   }

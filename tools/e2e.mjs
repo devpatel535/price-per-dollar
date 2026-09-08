@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import http from 'node:http';
+import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -83,7 +84,17 @@ function stageExtension(name, grantedOrigins) {
   return target;
 }
 
-async function launch(extensionPath) {
+function freePort() {
+  return new Promise((resolve) => {
+    const probe = net.createServer();
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
+
+async function launch(extensionPath, debugPort) {
   const profile = path.join(workDir, `profile-${path.basename(extensionPath)}`);
   fs.rmSync(profile, { recursive: true, force: true });
   return chromium.launchPersistentContext(profile, {
@@ -95,6 +106,7 @@ async function launch(extensionPath) {
       `--load-extension=${extensionPath}`,
       '--no-sandbox',
       '--disable-dev-shm-usage',
+      ...(debugPort ? [`--remote-debugging-port=${debugPort}`] : []),
     ],
   });
 }
@@ -175,7 +187,8 @@ async function waitInShadow(page, selector, timeout = 10000) {
 async function phaseA(url) {
   console.log('\nPhase A — shipped build, no site permission granted');
   const extension = stageExtension('extension-default', null);
-  const context = await launch(extension);
+  const debugPort = await freePort();
+  const context = await launch(extension, debugPort);
   try {
     const id = await extensionId(context);
     check('service worker booted', !!id, 'no service worker appeared');
@@ -194,15 +207,59 @@ async function phaseA(url) {
     const manifest = JSON.parse(fs.readFileSync(path.join(extension, 'manifest.json'), 'utf8'));
     check('shipped manifest declares no host permissions', manifest.host_permissions === undefined);
     await page.screenshot({ path: path.join(shotDir, '1-before-untouched.png') });
+
+    // The popup opened programmatically does not receive `activeTab` — only a
+    // genuine click on the toolbar icon does — so injection fails here. What is
+    // being checked is that the popup says something true and actionable about
+    // that, rather than claiming this is not a shopping page. Chrome hides
+    // `tab.url` until the extension is invoked, and an earlier version read
+    // that absence as "not a web page" and gave up on real storefronts.
+    await page.bringToFront();
+    const worker = context.serviceWorkers()[0];
+    const opened = await worker.evaluate(async () => {
+      if (!chrome.action.openPopup) return 'unsupported';
+      try {
+        await chrome.action.openPopup();
+        return 'opened';
+      } catch (error) {
+        return `error: ${String(error)}`;
+      }
+    });
+
+    if (opened === 'opened') {
+      await page.waitForTimeout(2500);
+      let remote = null;
+      try {
+        remote = await chromium.connectOverCDP(`http://127.0.0.1:${debugPort}`);
+        const popup = remote.contexts()
+          .flatMap((ctx) => ctx.pages())
+          .find((candidate) => candidate.url().includes('/popup/index.html'));
+        if (popup) {
+          const status = (await popup.locator('#scan-status').textContent()) ?? '';
+          check('popup does not mistake a storefront for an unscannable page',
+            !/Open a shopping page/i.test(status), status);
+          check('popup explains how to grant access instead',
+            /Always run here|toolbar icon/i.test(status), status);
+        } else {
+          console.log('  · popup target not reachable; diagnostic check skipped');
+        }
+      } catch (error) {
+        console.log(`  · popup target not reachable (${String(error).split('\n')[0]})`);
+      } finally {
+        await remote?.close().catch(() => undefined);
+      }
+    } else {
+      console.log(`  · chrome.action.openPopup unavailable (${opened}); diagnostic check skipped`);
+    }
   } finally {
-    await context.close();
+    await context.close().catch(() => undefined);
   }
 }
 
 async function phaseB(url, productUrl) {
   console.log('\nPhase B — same build with localhost granted ("Always run here")');
   const extension = stageExtension('extension-granted', ['http://127.0.0.1/*', 'http://localhost/*']);
-  const context = await launch(extension);
+  const context = await launch(extension, null);
   try {
     const id = await extensionId(context);
     check('service worker booted', !!id);
