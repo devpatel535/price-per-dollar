@@ -36,5 +36,5 @@ jobs:
       - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.zip
+          files: store/package/*.zip
           generate_release_notes: true

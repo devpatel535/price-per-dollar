@@ -57,7 +57,7 @@ npm run package
 ```
 
 This builds `dist/`, runs the pre-submission checks, and writes
-`release/price-per-dollar-1.0.0.zip`. It refuses to package if any check fails,
+`store/package/price-per-dollar-1.0.0.zip`. It refuses to package if any check fails,
 so a clean run means the manifest, icons, file references, permissions and
 packaging hygiene are all sound.
 
@@ -76,7 +76,7 @@ the toolbar icon.
 ## 3. Upload the package
 
 Developer dashboard → **Add new item** → drag in
-`release/price-per-dollar-1.0.0.zip`.
+`store/package/price-per-dollar-1.0.0.zip`.
 
 > ### Upload the built package, not the source
 >
@@ -94,7 +94,7 @@ apart in one look — the right zip has `manifest.json` at the **top level** and
 contains 14 files:
 
 ```
-$ unzip -l release/price-per-dollar-1.0.0.zip
+$ unzip -l store/package/price-per-dollar-1.0.0.zip
     manifest.json          <- at the root, not inside any folder
     content/index.js
     popup/index.html
@@ -106,9 +106,9 @@ $ unzip -l release/price-per-dollar-1.0.0.zip
 
 Three ways to get it, in order of convenience:
 
-1. **Download it from the repository's Releases page** —
-   <https://github.com/devpatel535/price-per-dollar/releases> — the asset named
-   `price-per-dollar-<version>.zip`.
+1. **Download it straight from the repository** — the package is committed
+   next to the listing images:
+   <https://github.com/devpatel535/price-per-dollar/raw/HEAD/store/package/price-per-dollar-1.0.0.zip>
 2. **Build it:** `npm install && npm run package`.
 3. **From a CI run:** the `price-per-dollar-zip` artifact on any green build.
 

@@ -44,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: price-per-dollar-zip
-          path: release/*.zip
+          path: store/package/*.zip
           if-no-files-found: error
 
   browser:

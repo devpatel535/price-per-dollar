@@ -3,11 +3,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Zip `dist/` into an upload-ready archive for the Chrome Web Store. */
+/**
+ * Zip `dist/` into an upload-ready archive for the Chrome Web Store.
+ *
+ * The archive is written into `store/package/` and committed, alongside the
+ * listing images and copy, because it is a deliverable rather than a build
+ * by-product: without it in the repository the only way to obtain the package
+ * is to build it, and GitHub's source download is the wrong thing to upload.
+ */
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
-const releaseDir = path.join(root, 'release');
+const releaseDir = path.join(root, 'store', 'package');
 
 if (!fs.existsSync(path.join(dist, 'manifest.json'))) {
   console.error('dist/ is not built — run `npm run build` first.');

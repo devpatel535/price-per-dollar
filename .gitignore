@@ -2,6 +2,7 @@ node_modules/
 dist/
 release/
 *.zip
+!store/package/*.zip
 .DS_Store
 *.log
 .vitest/

@@ -106,7 +106,7 @@ Open any shopping page and click the toolbar icon (or press <kbd>Alt</kbd>
 To build an upload-ready archive for the Chrome Web Store:
 
 ```bash
-npm run package   # writes release/price-per-dollar-<version>.zip
+npm run package   # writes store/package/price-per-dollar-<version>.zip
 ```
 
 ## Permissions, and why there are so few
@@ -274,16 +274,16 @@ justifications, the single-purpose statement, the data-usage answers, and what
 to do if a review comes back.
 
 ```bash
-npm run package        # build, verify, and write release/price-per-dollar-<version>.zip
+npm run package        # build, verify, and write store/package/price-per-dollar-<version>.zip
 npm run store:assets   # 1280x800 screenshots, promo tile, marquee
 ```
 
 **Upload the built package, not the source.** GitHub's "Download ZIP" gives you
 the repository, which the store rejects with a confusing wall of text listing
-every file in it. The package to upload is on the
-[Releases page](https://github.com/devpatel535/price-per-dollar/releases), or
-build it with `npm run package`. The right zip has `manifest.json` at its top
-level and contains 14 files.
+every file in it. The package to upload is committed at
+[`store/package/price-per-dollar-1.0.0.zip`](https://github.com/devpatel535/price-per-dollar/raw/HEAD/store/package/price-per-dollar-1.0.0.zip)
+— or build it with `npm run package`. The right zip has `manifest.json` at its
+top level and contains 14 files.
 
 `npm run package` will not produce a zip unless the pre-submission checks pass.
 They cover the things the store rejects for: a malformed manifest, a missing or
