@@ -283,9 +283,10 @@ wrongly-sized icon, a dangling file reference, remote code, inline script under
 the MV3 CSP, source maps or stray files in the package, and listing images at
 the wrong dimensions.
 
-Two things are yours to do and cannot be done from here: creating the developer
-account (with its one-time US $5 fee), and putting `PRIVACY.md` at a publicly
-reachable URL. Step 1 of the submission guide covers the latter.
+One thing is yours to do and cannot be done from here: creating the Chrome Web
+Store developer account, paying its one-time US $5 fee, and verifying the
+contact email on it. Everything else — package, icons, screenshots, promo
+tiles, listing copy, permission justifications, privacy policy URL — is ready.
 
 ## Limitations
 

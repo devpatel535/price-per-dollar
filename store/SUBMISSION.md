@@ -12,31 +12,40 @@ Text in blockquotes is meant to be pasted verbatim.
 | Chrome Web Store developer account | **You must create this** — <https://chrome.google.com/webstore/devconsole> |
 | One-time registration fee (US $5) | **You must pay this** — the account cannot publish until you do |
 | Verified contact email on the account | **You must do this** — Google requires it before publishing |
-| A publicly reachable privacy policy URL | **See step 1** — the only thing in this repo that needs a decision |
+| A publicly reachable privacy policy URL | Done — see step 1 (repository is public) |
 | Packaged extension `.zip` | `npm run package` |
 | Listing images | `npm run store:assets` |
 
-Everything below the first three rows is already prepared.
+The first three rows are yours to do — they need a person, a card and an
+inbox. Everything else is already prepared.
 
 ---
 
-## 1. Publish the privacy policy somewhere public
+## 1. Privacy policy URL — already sorted
 
 The store requires a privacy policy at a URL Google can load anonymously,
-because the extension reads page content. `PRIVACY.md` is written and accurate;
-it just needs to be reachable.
+because the extension reads page content. `PRIVACY.md` is written, accurate,
+and already public: the repository is public, so use
 
-**Easiest option — make the repository public.** Then the policy lives at:
+> https://github.com/devpatel535/price-per-dollar/blob/HEAD/PRIVACY.md
 
-> https://github.com/devpatel535/price-per-dollar/blob/main/PRIVACY.md
+**Use the `HEAD` form, not `main`.** This repository's default branch is
+`claude/price-per-dollar-extension-d8cldn`, so a `/blob/main/` URL returns 404
+today — and a 404 policy URL is a guaranteed rejection. `HEAD` resolves to
+whatever the default branch is, so the link keeps working if you later rename
+it or merge to `main`.
 
-**If you would rather keep the repository private,** publish the policy alone:
+Verified working at the time of writing:
 
-- Paste `PRIVACY.md` into a public Gist and use its URL, or
-- Enable GitHub Pages on a small public repo containing only that file.
+```
+$ curl -s -o /dev/null -w "%{http_code}\n" -L \
+    https://github.com/devpatel535/price-per-dollar/blob/HEAD/PRIVACY.md
+200
+```
 
-Whichever you choose, open the URL in a private window before submitting. A
-policy URL that 404s for a logged-out visitor is a guaranteed rejection.
+Re-run that before you submit, and also open it in a private window. If you
+ever make the repository private, move the policy to a public Gist or GitHub
+Pages and use that URL instead.
 
 ---
 
@@ -105,7 +114,13 @@ Upload the `.zip`, not the `dist/` folder and not a folder containing the zip.
 Both promo tiles are optional; supplying them makes the listing eligible for
 more placements and costs nothing.
 
-**Support URL:** your GitHub issues URL, or a contact email you monitor.
+**Support URL:**
+
+> https://github.com/devpatel535/price-per-dollar/issues
+
+**Website** (optional):
+
+> https://github.com/devpatel535/price-per-dollar
 
 ---
 
@@ -171,7 +186,7 @@ The likely causes, in order:
 
 | Rejection | Fix |
 | --- | --- |
-| Privacy policy URL not reachable | Re-check step 1 in a private window |
+| Privacy policy URL not reachable | Use the `/blob/HEAD/` form, not `/blob/main/` — see step 1 |
 | Permission not justified | Copy the wording from step 5 exactly |
 | Data disclosures inconsistent with the code | The correct answer is "collects nothing"; make sure nothing is ticked |
 | Screenshot wrong size | Regenerate with `npm run store:assets` — they are exactly 1280×800 |

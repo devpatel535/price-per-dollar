@@ -65,11 +65,23 @@ function serveFixture() {
   });
 }
 
+/**
+ * Where the extension under test comes from.
+ *
+ * Defaults to `dist/`, but `--from <dir>` points it at anything — notably an
+ * unpacked copy of the release zip, so the artefact actually uploaded to the
+ * store is the one exercised.
+ */
+const fromFlag = process.argv.indexOf('--from');
+const SOURCE = fromFlag !== -1 && process.argv[fromFlag + 1]
+  ? path.resolve(root, process.argv[fromFlag + 1])
+  : path.join(root, 'dist');
+
 /** Copy the built extension, optionally granting an origin up front. */
 function stageExtension(name, grantedOrigins) {
   const target = path.join(workDir, name);
   fs.rmSync(target, { recursive: true, force: true });
-  fs.cpSync(path.join(root, 'dist'), target, { recursive: true });
+  fs.cpSync(SOURCE, target, { recursive: true });
   if (grantedOrigins) {
     const manifestPath = path.join(target, 'manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -380,10 +392,11 @@ async function phaseB(url, productUrl) {
 }
 
 async function main() {
-  if (!fs.existsSync(path.join(root, 'dist', 'manifest.json'))) {
-    console.error('dist/ is not built — run `npm run build` first.');
+  if (!fs.existsSync(path.join(SOURCE, 'manifest.json'))) {
+    console.error(`no manifest.json in ${path.relative(root, SOURCE)} — run \`npm run build\` first.`);
     process.exit(1);
   }
+  console.log(`extension under test: ${path.relative(root, SOURCE) || 'dist'}`);
   fs.rmSync(shotDir, { recursive: true, force: true });
   fs.mkdirSync(shotDir, { recursive: true });
 
