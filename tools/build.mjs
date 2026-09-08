@@ -2,6 +2,7 @@ import esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { encodePng, renderIcon } from './icon-render.mjs';
 
 /**
  * Build the unpacked extension into `dist/`.
@@ -41,12 +42,10 @@ function copyStatic() {
   fs.copyFileSync(path.join(root, 'src/popup/index.html'), path.join(dist, 'popup/index.html'));
   fs.copyFileSync(path.join(root, 'src/popup/popup.css'), path.join(dist, 'popup/popup.css'));
 
-  const iconDir = path.join(root, 'assets/icons');
-  if (!fs.existsSync(iconDir)) {
-    throw new Error('assets/icons is missing — run `npm run icons` first.');
-  }
-  for (const file of fs.readdirSync(iconDir)) {
-    if (file.endsWith('.png')) fs.copyFileSync(path.join(iconDir, file), path.join(dist, 'icons', file));
+  // Icons are rendered rather than copied, so a build never depends on a
+  // committed binary being present or up to date.
+  for (const size of [16, 32, 48, 128]) {
+    fs.writeFileSync(path.join(dist, 'icons', `icon${size}.png`), encodePng(renderIcon(size), size));
   }
 
   // The manifest version is owned by package.json so a release only bumps once.
