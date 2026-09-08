@@ -144,6 +144,8 @@ returns nothing rather than inventing a size. It handles:
 | `1.5 lb (680 g)` | 680.39 g (parenthetical restatement, not multiplied) |
 | `30 Rolls, 425 Sheets per Roll` | 12750 sheets, pack of 30 |
 | `24 Family Mega Rolls` | 24 rolls (count noun separated by adjectives) |
+| `200 mg, 300 tablets` | 60 g, 200 mg a tablet |
+| `8 packs, 42 wipes each` | 336 wipes, pack of 8 |
 | `40 bottles, 16.9 fl oz` | 19992 mL — a bottle's capacity multiplies by the count |
 | `48 pieces, 600 g` | 600 g — a box's weight does **not** multiply by the count |
 | `154 fl oz (96 loads)` | 4554 mL — a usage yield is **not** a pack multiplier |

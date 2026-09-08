@@ -20,14 +20,6 @@ const GENERIC_COUNT_NOUNS = new Set([
   'each', 'ea', 'item', 'case', 'bundle', 'set',
 ]);
 
-/** Count nouns that a pack size legitimately multiplies. */
-const MULTIPLIER_NOUNS = new Set([
-  'ct', 'count', 'cnt', 'pack', 'pk', 'pkg', 'package', 'piece', 'pc', 'unit',
-  'each', 'ea', 'item', 'case', 'bundle', 'set', 'can', 'bottle', 'box', 'bag',
-  'jar', 'pouch', 'carton', 'tub', 'tube', 'bar', 'stick', 'pod', 'sachet',
-  'packet', 'tray', 'sleeve', 'canister', 'cartridge', 'k-cup', 'kcup', 'pair',
-]);
-
 const IRREGULAR_SINGULARS: Record<string, string> = {
   boxes: 'box', pouches: 'pouch', batteries: 'battery', gummies: 'gummy',
   leaves: 'leaf', loaves: 'loaf', knives: 'knife', feet: 'foot',
@@ -421,10 +413,10 @@ export function parseQuantity(input: string, options: ParseQuantityOptions = {})
 
   // 4. A unit size stated alongside a pack count, e.g. `12 fl oz, 24 pack`.
   if (primarySized) {
-    const packCount = counts.find(
-      (c) => c.countNoun && MULTIPLIER_NOUNS.has(c.countNoun)
-        && c.index !== primarySized.index && c.value > 1,
-    );
+    // Any count can be the pack size; whether it multiplies is decided below,
+    // so a dose stated before its tablet count is read the same way a can size
+    // stated before its case count is.
+    const packCount = counts.find((c) => c.index !== primarySized.index && c.value > 1);
     if (packCount) {
       const alternates: QuantityView[] = [{
         value: packCount.value,
@@ -481,6 +473,30 @@ export function parseQuantity(input: string, options: ParseQuantityOptions = {})
   // 6. Nothing measurable — fall back to counting the things themselves.
   const primaryCount = counts.find((c) => !c.inParens) ?? counts[0];
   if (primaryCount) {
+    // `8 packs, 42 wipes each` — a pack count and what each pack holds. The
+    // finer count is the useful basis, and `each` is what makes it unambiguous.
+    const perPack = counts.find(
+      (c) => c !== primaryCount && !c.inParens && c.index > primaryCount.index && c.value > 1,
+    );
+    if (perPack && primaryCount.value > 1 && PER_ITEM_SIGNAL.test(text)) {
+      return buildQuantity(
+        {
+          value: primaryCount.value * perPack.value,
+          unit: perPack.unit,
+          countNoun: perPack.countNoun ?? 'ct',
+        },
+        primaryCount.value,
+        `${primaryCount.raw} x ${perPack.raw}`,
+        0.85,
+        [{
+          value: primaryCount.value,
+          unit: primaryCount.unit,
+          base: toBase(primaryCount.value, primaryCount.unit),
+          countNoun: primaryCount.countNoun ?? 'ct',
+        }],
+      );
+    }
+
     const alternates: QuantityView[] = counts
       .filter((c) => c !== primaryCount)
       .map((c) => ({

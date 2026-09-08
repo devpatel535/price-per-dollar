@@ -136,6 +136,27 @@ describe('parseQuantity — does a pack count multiply the stated size?', () => 
   it('reports clean numbers rather than float noise', () => {
     expect(q('Hershey Milk Chocolate Bars, 1.55 oz, 36-count box')!.value).toBe(55.8);
   });
+
+  it('multiplies a dose by its tablet count', () => {
+    // Without this, a 300-count and a 100-count bottle of the same pill both
+    // report 200 mg, and the smaller bottle ranks as the better value.
+    const big = q('Advil Ibuprofen 200mg, 300 tablets');
+    const small = q('Advil Ibuprofen 200mg, 100 tablets');
+    expect(big!.base).toBe(60);
+    expect(small!.base).toBe(20);
+    expect(big!.basePerItem).toBeCloseTo(0.2, 10);
+  });
+
+  it('reads a pack of packs down to the individual item', () => {
+    const parsed = q('Cottonelle Flushable Wipes, 8 flip-top packs, 42 wipes each');
+    expect(parsed).toMatchObject({ dimension: 'count', countNoun: 'wipe', packCount: 8 });
+    expect(parsed!.base).toBe(336);
+    expect(parsed!.alternates?.[0]).toMatchObject({ countNoun: 'ct', base: 8 });
+
+    const bars = q('Clif Bar, 6 boxes, 12 bars each');
+    expect(bars).toMatchObject({ countNoun: 'bar', packCount: 6 });
+    expect(bars!.base).toBe(72);
+  });
 });
 
 describe('parseQuantity — traps', () => {
