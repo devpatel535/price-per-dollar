@@ -5,7 +5,9 @@ import { loadSettings, saveSettings, type Settings } from '../shared/settings.ts
 import {
   analyseValue, renderAnalysisMarkdown, toComparisonOption, type ComparisonOption,
 } from '../core/compare.ts';
-import { formatCurrency, formatMeasure, formatMultiplier, pluralise } from '../core/format.ts';
+import {
+  formatCurrency, formatMeasure, formatMultiplier, measureToInputValue, pluralise,
+} from '../core/format.ts';
 import { UNITS, resolveUnit, toBase } from '../core/units.ts';
 import { buildAnalysisBody } from '../ui/analysis.ts';
 import { copyText, el } from '../ui/dom.ts';
@@ -233,7 +235,7 @@ function prefillCalculator(a: ComparisonOption, b: ComparisonOption, group: Item
         ?? UNITS.find((candidate) => candidate.dimension === option.dimension);
       if (unit && CALCULATOR_UNITS.includes(unit.id)) {
         select.value = unit.id;
-        sizeInput.value = formatMeasure(option.baseTotal / unit.factor / option.unitsInPack, 4);
+        sizeInput.value = measureToInputValue(option.baseTotal / unit.factor / option.unitsInPack);
         return;
       }
     }

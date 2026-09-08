@@ -52,25 +52,57 @@ export function buildAnalysisBody(analysis: ValueAnalysis): DocumentFragment {
   fragment.appendChild(buildTable(dollarHeaders, dollarRows));
 
   const spend = el('p', 'prose');
-  spend.textContent =
-    `${money(bulk.totalPrice)} spent on singles at ${money(single.unitCost)} each buys `
-    + `${toFixed(dfd.singlesForBulkSpend)} ${pluralise(noun, dfd.singlesForBulkSpend)} `
-    + `(${dfd.singlesForBulkSpendWhole} whole ${pluralise(noun, dfd.singlesForBulkSpendWhole)}), `
-    + `against ${formatMeasure(bulk.unitsInPack)} ${pluralise(noun, bulk.unitsInPack)} in the pack.`;
-  fragment.appendChild(spend);
+  if (analysis.unitsComparable) {
+    spend.textContent =
+      `${money(bulk.totalPrice)} spent on singles at ${money(single.unitCost)} each buys `
+      + `${toFixed(dfd.singlesForBulkSpend)} ${pluralise(noun, dfd.singlesForBulkSpend)} `
+      + `(${dfd.singlesForBulkSpendWhole} whole ${pluralise(noun, dfd.singlesForBulkSpendWhole)}), `
+      + `against ${formatMeasure(bulk.unitsInPack)} ${pluralise(noun, bulk.unitsInPack)} in the pack.`;
+  } else if (display && dfd.baseForBulkSpendAtSingleRate !== null && bulk.baseTotal !== null) {
+    // Different individual units, so counting items would compare bottles
+    // against cans. The measure is the honest common ground.
+    spend.textContent =
+      `${money(bulk.totalPrice)} buys ${formatMeasure(bulk.baseTotal)} ${display.baseLabel} this way, `
+      + `but only ${formatMeasure(dfd.baseForBulkSpendAtSingleRate)} ${display.baseLabel} at the other rate.`;
+  }
+  if (spend.textContent) fragment.appendChild(spend);
 
   // --- Section 3: purchasing power yield ---
   fragment.appendChild(el('h3', undefined, 'Purchasing power yield'));
   const list = el('ul');
+  const headline: Array<[string, string]> = [
+    ['Purchasing power multiplier', formatMultiplier(pp.multiplier)],
+    ['Value gained for the same money', `${formatPercent(pp.percentGain)} more product`],
+    ['Discount off the single rate', formatPercent(pp.percentSavedPerUnit)],
+  ];
+
+  const perItem: Array<[string, string]> = [
+    [`Saving per ${noun}`, money(pp.savingsPerUnit)],
+    ['Total saved across the pack', money(pp.totalSavingsAcrossPack)],
+    [`Extra ${pluralise(noun, 2)} for the same spend`, toFixed(pp.extraUnitsForSameSpend)],
+  ];
+
+  const perMeasure: Array<[string, string]> = [];
+  if (display && !analysis.unitsComparable) {
+    if (pp.savingPerDisplayUnit !== null) {
+      perMeasure.push([`Saving per ${display.label}`, money(pp.savingPerDisplayUnit)]);
+    }
+    if (pp.totalSavingsAtSingleRate !== null && bulk.baseTotal !== null) {
+      perMeasure.push([
+        `Total saved on ${formatMeasure(bulk.baseTotal)} ${display.baseLabel}`,
+        money(pp.totalSavingsAtSingleRate),
+      ]);
+    }
+    if (pp.extraBaseForSameSpend !== null) {
+      perMeasure.push([
+        `Extra ${display.baseLabel} for the same spend`,
+        formatMeasure(pp.extraBaseForSameSpend),
+      ]);
+    }
+  }
+
   const bullets: Array<[string, string]> = pp.bulkIsBetter
-    ? [
-        ['Purchasing power multiplier', formatMultiplier(pp.multiplier)],
-        ['Value gained for the same money', `${formatPercent(pp.percentGain)} more product`],
-        ['Discount off the single rate', formatPercent(pp.percentSavedPerUnit)],
-        [`Saving per ${noun}`, money(pp.savingsPerUnit)],
-        ['Total saved across the pack', money(pp.totalSavingsAcrossPack)],
-        [`Extra ${pluralise(noun, 2)} for the same spend`, toFixed(pp.extraUnitsForSameSpend)],
-      ]
+    ? [...headline, ...(analysis.unitsComparable ? perItem : perMeasure)]
     : [
         ['Purchasing power multiplier', formatMultiplier(pp.multiplier)],
         ['Verdict', 'the larger option offers no advantage at these prices'],

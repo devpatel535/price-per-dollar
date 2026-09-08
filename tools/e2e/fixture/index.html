@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fresh Market — Pantry</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1f2937; background: #fff; }
+  header { padding: 18px 28px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 14px; }
+  header .logo { font-weight: 800; font-size: 18px; color: #166534; }
+  header nav { color: #6b7280; font-size: 13px; }
+  h1 { margin: 24px 28px 4px; font-size: 20px; }
+  .count { margin: 0 28px 18px; color: #6b7280; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 0 28px 40px; }
+  .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; }
+  .thumb { height: 108px; border-radius: 8px; margin-bottom: 12px; background: linear-gradient(135deg,#f1f5f9,#e2e8f0); }
+  .card .title { color: #111827; text-decoration: none; font-weight: 600; font-size: 13px; line-height: 1.4; min-height: 54px; }
+  .card .title:hover { text-decoration: underline; }
+  .price { margin-top: 10px; font-size: 18px; font-weight: 700; }
+  .was { margin-left: 6px; color: #9ca3af; font-size: 13px; font-weight: 400; text-decoration: line-through; }
+  .unit { color: #6b7280; font-size: 11px; margin-top: 2px; }
+  .ship { color: #6b7280; font-size: 11px; margin-top: 6px; }
+  .btn { margin-top: 10px; padding: 7px; border: 0; border-radius: 7px; background: #166534; color: #fff; font-weight: 600; font-size: 12px; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="logo">Fresh Market</span>
+    <nav>Groceries › Pantry › Oils, Water &amp; Paper</nav>
+  </header>
+
+  <h1>Pantry</h1>
+  <p class="count">12 results</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/oo-250">Cordoba Extra Virgin Olive Oil, 250 ml</a>
+      <div class="price">$6.49</div>
+      <div class="ship">+ $5.99 shipping</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/oo-500">Cordoba Extra Virgin Olive Oil, 500 ml</a>
+      <div class="price">$11.49</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/oo-1l">Cordoba Extra Virgin Olive Oil, 1 L</a>
+      <div class="price">$14.99 <span class="was">$18.99</span></div>
+      <div class="unit">($1.50 / 100 mL)</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/oo-3l">Cordoba Extra Virgin Olive Oil, 3 L Tin</a>
+      <div class="price">$32.99</div>
+      <button class="btn">Add to cart</button>
+    </div>
+
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/w-1">Alpine Sparkling Water, 750 ml</a>
+      <div class="price">$2.29</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/w-12">Alpine Sparkling Water, 12 x 330 ml</a>
+      <div class="price">$9.99</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/w-24">Alpine Sparkling Water, 330 ml Cans, 24 Pack</a>
+      <div class="price">$16.49</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/w-6">Alpine Sparkling Water, 6 x 1.5 L</a>
+      <div class="price">$11.99</div>
+      <button class="btn">Add to cart</button>
+    </div>
+
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/pt-6">Softly Paper Towels, 6 Mega Rolls</a>
+      <div class="price">$12.99</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/pt-12">Softly Paper Towels, 12 Mega Rolls</a>
+      <div class="price">$21.49</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/oats">Highland Rolled Oats, 2 lb 4 oz</a>
+      <div class="price">$7.29</div>
+      <button class="btn">Add to cart</button>
+    </div>
+    <div class="card">
+      <div class="thumb"></div>
+      <a class="title" href="/p/kettle">Brewline Electric Kettle, Stainless</a>
+      <div class="price">$54.00</div>
+      <button class="btn">Add to cart</button>
+    </div>
+  </div>
+</body>
+</html>

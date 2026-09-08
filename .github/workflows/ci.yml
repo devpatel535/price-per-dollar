@@ -46,3 +46,32 @@ jobs:
           name: price-per-dollar-zip
           path: release/*.zip
           if-no-files-found: error
+
+  browser:
+    name: Drive the extension in Chromium
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # The e2e run needs the full Chromium build; the headless shell cannot
+      # load extensions.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the browser suite
+        run: npm run e2e
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: price-per-dollar-screenshots
+          path: .e2e/screens/
+          if-no-files-found: warn

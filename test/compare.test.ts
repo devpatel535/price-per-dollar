@@ -100,6 +100,46 @@ describe('analyseValue', () => {
     expect(result.analysis.basis).toBe('measure');
   });
 
+  it('reports value in measure when the units are not the same thing', () => {
+    // A 6 x 1.5 L pack against a 24 x 330 ml pack: better value per litre, yet
+    // a 1.5 L bottle costs more than a can, so every per-item saving is
+    // negative. Reporting both would contradict itself.
+    const result = analyseValue(
+      { label: '6 x 1.5 L', totalPrice: 11.99, unitsInPack: 6, baseTotal: 9000, dimension: 'volume' },
+      { label: '24 x 330 ml', totalPrice: 16.49, unitsInPack: 24, baseTotal: 7920, dimension: 'volume' },
+    );
+    if (!result.ok) throw new Error('expected success');
+    const { unitsComparable, purchasingPower: pp, dollarForDollar: dfd } = result.analysis;
+
+    expect(unitsComparable).toBe(false);
+    expect(pp.bulkIsBetter).toBe(true);
+    expect(pp.multiplier).toBeCloseTo(1.5629, 4);
+
+    // The per-item figures are still computed, and are still negative — which
+    // is exactly why the renderers must not show them for this comparison.
+    expect(pp.savingsPerUnit).toBeLessThan(0);
+
+    // The measure-based figures are the ones that make sense here.
+    expect(pp.savingPerDisplayUnit).toBeCloseTo(0.074985, 5);
+    expect(pp.totalSavingsAtSingleRate).toBeCloseTo(6.748636, 5);
+    expect(pp.extraBaseForSameSpend).toBeCloseTo(3241.31, 2);
+    expect(dfd.baseForBulkSpendAtSingleRate).toBeCloseTo(5758.69, 2);
+
+    const md = renderAnalysisMarkdown(result.analysis);
+    expect(md).toContain('Saving per 100 mL');
+    expect(md).not.toContain('Saving per item');
+    expect(md).not.toMatch(/-\$\d/);
+  });
+
+  it('keeps the per-item narrative when the units match', () => {
+    const result = analyseValue(bulkCase, singleCan);
+    if (!result.ok) throw new Error('expected success');
+    expect(result.analysis.unitsComparable).toBe(true);
+    const md = renderAnalysisMarkdown(result.analysis);
+    expect(md).toContain('Saving per item');
+    expect(md).not.toContain('Saving per 100 mL');
+  });
+
   it('flags a bulk option that is not actually cheaper', () => {
     const result = analyseValue(
       { label: 'Case', totalPrice: 30, unitsInPack: 10 },

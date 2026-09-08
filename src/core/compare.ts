@@ -53,6 +53,15 @@ export interface ValueAnalysis {
   currency: string;
   display: DisplayBase | null;
   basis: ComparisonBasis;
+  /**
+   * Whether the two options contain the same individual unit.
+   *
+   * A 1.5 L bottle against a 330 ml can compares honestly per litre and
+   * nonsensically per item — the "saving per item" of such a pair is negative
+   * even when the pack is much better value. When this is false the report
+   * talks in measure instead, rather than printing both and contradicting itself.
+   */
+  unitsComparable: boolean;
   bulk: OptionSummary;
   single: OptionSummary;
   dollarForDollar: {
@@ -66,6 +75,8 @@ export interface ValueAnalysis {
     unitsPerCurrencySingle: number;
     basePerCurrencyBulk: number | null;
     basePerCurrencySingle: number | null;
+    /** Measure the bulk spend would buy at the smaller option's rate. */
+    baseForBulkSpendAtSingleRate: number | null;
   };
   purchasingPower: {
     /** Single unit cost ÷ bulk unit cost — how many times further a dollar goes. */
@@ -78,6 +89,12 @@ export interface ValueAnalysis {
     totalSavingsAcrossPack: number;
     /** Items gained for the same spend by buying the case instead of singles. */
     extraUnitsForSameSpend: number;
+    /** Saving per display quantum, e.g. per 100 mL. Null without measures. */
+    savingPerDisplayUnit: number | null;
+    /** Saved by buying the pack rather than the same measure at the single rate. */
+    totalSavingsAtSingleRate: number | null;
+    /** Extra measure obtained for the bulk spend by taking the better rate. */
+    extraBaseForSameSpend: number | null;
     bulkIsBetter: boolean;
   };
   /** Things a careful analyst would flag about this particular comparison. */
@@ -181,18 +198,34 @@ export function analyseValue(
 
   const singlesForBulkSpend = bulk.totalPrice / single.unitCost;
 
+  const unitSizeRatio = bulk.basePerUnit && single.basePerUnit
+    ? bulk.basePerUnit / single.basePerUnit
+    : null;
+  const unitsComparable = basis === 'unit'
+    ? true
+    : unitSizeRatio !== null && unitSizeRatio >= 0.95 && unitSizeRatio <= 1.05;
+
+  const measured = bothMeasured && display !== null;
+  const savingPerDisplayUnit = measured && display ? (singleRate - bulkRate) * display.factor : null;
+  const totalSavingsAtSingleRate = measured
+    ? (bulk.baseTotal as number) * singleRate - bulk.totalPrice
+    : null;
+  const baseForBulkSpendAtSingleRate = measured && singleRate > 0
+    ? bulk.totalPrice / singleRate
+    : null;
+  const extraBaseForSameSpend = measured && baseForBulkSpendAtSingleRate !== null
+    ? (bulk.baseTotal as number) - baseForBulkSpendAtSingleRate
+    : null;
+
   const warnings: string[] = [];
   if (!bothMeasured) {
     warnings.push(
       'Only one option states a measurable size, so the comparison falls back to cost per item. Confirm both options describe the same individual unit.',
     );
-  } else if (bulk.basePerUnit && single.basePerUnit) {
-    const ratio = bulk.basePerUnit / single.basePerUnit;
-    if (ratio < 0.95 || ratio > 1.05) {
-      warnings.push(
-        `The two options do not contain the same individual unit (${formatMeasure(bulk.basePerUnit)} vs ${formatMeasure(single.basePerUnit)} per item), so per-item cost is not like-for-like. The per-${display?.label ?? 'unit'} row is the honest comparison.`,
-      );
-    }
+  } else if (!unitsComparable && bulk.basePerUnit && single.basePerUnit) {
+    warnings.push(
+      `The two options do not contain the same individual unit (${formatMeasure(bulk.basePerUnit)} vs ${formatMeasure(single.basePerUnit)} per item), so per-item cost is not like-for-like. The per-${display?.label ?? 'unit'} figures are the honest comparison.`,
+    );
   }
   if (multiplier <= 1) {
     warnings.push('The bulk option is not cheaper per unit here. Buying singles costs the same or less.');
@@ -204,6 +237,7 @@ export function analyseValue(
       currency,
       display,
       basis,
+      unitsComparable,
       bulk,
       single,
       dollarForDollar: {
@@ -214,6 +248,7 @@ export function analyseValue(
         unitsPerCurrencySingle: single.unitsPerCurrency,
         basePerCurrencyBulk: bulk.basePerCurrency,
         basePerCurrencySingle: single.basePerCurrency,
+        baseForBulkSpendAtSingleRate,
       },
       purchasingPower: {
         multiplier,
@@ -222,6 +257,9 @@ export function analyseValue(
         savingsPerUnit: single.unitCost - bulk.unitCost,
         totalSavingsAcrossPack: bulk.unitsInPack * single.unitCost - bulk.totalPrice,
         extraUnitsForSameSpend: bulk.unitsInPack - singlesForBulkSpend,
+        savingPerDisplayUnit,
+        totalSavingsAtSingleRate,
+        extraBaseForSameSpend,
         bulkIsBetter: multiplier > 1,
       },
       warnings,
@@ -307,12 +345,22 @@ export function renderAnalysisMarkdown(analysis: ValueAnalysis): string {
   lines.push('');
   lines.push('## Dollar-for-Dollar Value Analysis');
   lines.push('');
-  lines.push(
-    `Spending the bulk total of **${money(bulk.totalPrice)}** on single items at ${money(single.unitCost)} each buys ` +
-    `**${toFixed(dfd.singlesForBulkSpend)} ${pluralise(noun, dfd.singlesForBulkSpend)}** ` +
-    `(**${dfd.singlesForBulkSpendWhole} whole ${pluralise(noun, dfd.singlesForBulkSpendWhole)}** in practice), ` +
-    `against **${formatMeasure(bulk.unitsInPack)} ${pluralise(noun, bulk.unitsInPack)}** in the case.`,
-  );
+  if (analysis.unitsComparable) {
+    lines.push(
+      `Spending the bulk total of **${money(bulk.totalPrice)}** on single items at ${money(single.unitCost)} each buys ` +
+      `**${toFixed(dfd.singlesForBulkSpend)} ${pluralise(noun, dfd.singlesForBulkSpend)}** ` +
+      `(**${dfd.singlesForBulkSpendWhole} whole ${pluralise(noun, dfd.singlesForBulkSpendWhole)}** in practice), ` +
+      `against **${formatMeasure(bulk.unitsInPack)} ${pluralise(noun, bulk.unitsInPack)}** in the case.`,
+    );
+  } else if (display && dfd.baseForBulkSpendAtSingleRate !== null && bulk.baseTotal !== null) {
+    // The two options hold different individual units, so counting items would
+    // compare bottles against cans. The measure is the honest common ground.
+    lines.push(
+      `**${money(bulk.totalPrice)}** buys **${formatMeasure(bulk.baseTotal)} ${display.baseLabel}** as the ` +
+      `${bulk.label}, but only **${formatMeasure(dfd.baseForBulkSpendAtSingleRate)} ${display.baseLabel}** ` +
+      `at the ${single.label} rate.`,
+    );
+  }
   lines.push('');
   lines.push(`What ${money(1)} buys:`);
   lines.push('');
@@ -334,9 +382,19 @@ export function renderAnalysisMarkdown(analysis: ValueAnalysis): string {
     lines.push(`- **Purchasing power multiplier:** ${formatMultiplier(pp.multiplier)} — every dollar spent on the case goes ${formatMultiplier(pp.multiplier)} as far as the same dollar spent on singles.`);
     lines.push(`- **Value gained:** ${formatPercent(pp.percentGain)} more product for the same money.`);
     lines.push(`- **Discount off the single-item rate:** ${formatPercent(pp.percentSavedPerUnit)}.`);
-    lines.push(`- **Saving per ${noun}:** ${money(pp.savingsPerUnit)}.`);
-    lines.push(`- **Total saved across the ${formatMeasure(bulk.unitsInPack)}-${noun} case:** ${money(pp.totalSavingsAcrossPack)}.`);
-    lines.push(`- **Extra ${pluralise(noun, 2)} for the same spend:** ${toFixed(pp.extraUnitsForSameSpend)}.`);
+    if (analysis.unitsComparable) {
+      lines.push(`- **Saving per ${noun}:** ${money(pp.savingsPerUnit)}.`);
+      lines.push(`- **Total saved across the ${formatMeasure(bulk.unitsInPack)}-${noun} case:** ${money(pp.totalSavingsAcrossPack)}.`);
+      lines.push(`- **Extra ${pluralise(noun, 2)} for the same spend:** ${toFixed(pp.extraUnitsForSameSpend)}.`);
+    } else if (display) {
+      if (pp.savingPerDisplayUnit !== null) lines.push(`- **Saving per ${display.label}:** ${money(pp.savingPerDisplayUnit)}.`);
+      if (pp.totalSavingsAtSingleRate !== null && bulk.baseTotal !== null) {
+        lines.push(`- **Total saved on ${formatMeasure(bulk.baseTotal)} ${display.baseLabel}:** ${money(pp.totalSavingsAtSingleRate)}.`);
+      }
+      if (pp.extraBaseForSameSpend !== null) {
+        lines.push(`- **Extra ${display.baseLabel} for the same spend:** ${formatMeasure(pp.extraBaseForSameSpend)}.`);
+      }
+    }
   } else {
     lines.push(`- **Purchasing power multiplier:** ${formatMultiplier(pp.multiplier)} — the case offers no advantage at these prices.`);
     lines.push(`- **Value lost by buying bulk:** ${formatPercent(Math.abs(pp.percentGain))}.`);

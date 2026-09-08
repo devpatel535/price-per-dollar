@@ -30,6 +30,12 @@ First release.
   in settings.
 - Per-site controls: grant permanent access, or switch the extension off.
 
+### Verified in a real browser
+
+- End-to-end suite loads the built extension into Chromium and drives it
+  against a fixture storefront, asserting both that it stays inert without a
+  site permission and that it ranks correctly with one.
+
 ### Security and privacy
 
 - No network requests, analytics, remote code or accounts.

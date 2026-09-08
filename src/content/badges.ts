@@ -20,11 +20,52 @@ const OVERLAY_ATTRIBUTE = 'data-ppd-overlay';
 const MAX_BADGES = 250;
 const REPOSITION_INTERVAL_MS = 120;
 
+/**
+ * Where a badge sits.
+ *
+ * On a grid card the badge goes in the card's top corner, over the thumbnail.
+ * A product detail page has no card to speak of — the "card" is the whole
+ * content block — so pinning there would drop the badge across the title.
+ * Those anchor beside the price itself instead.
+ */
+type PlacementMode = 'card' | 'price';
+
 interface Placement {
   itemId: string;
   element: HTMLElement;
+  anchor: HTMLElement;
+  mode: PlacementMode;
   node: HTMLDivElement;
   outline: HTMLDivElement | null;
+}
+
+/** Above this, a "card" is really a page region and the badge moves. */
+const LARGE_CARD_HEIGHT = 360;
+const LARGE_CARD_WIDTH_RATIO = 0.55;
+
+/**
+ * The box actually occupied by an element's text.
+ *
+ * A price is usually a block element spanning its whole column, so its border
+ * box says nothing about where "$32.99" ends. A range over its contents does,
+ * which is what decides whether a badge fits beside it.
+ */
+function textRect(element: HTMLElement): DOMRect {
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const rect = range.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return rect;
+  } catch {
+    // Detached nodes cannot be measured this way; fall back to the border box.
+  }
+  return element.getBoundingClientRect();
+}
+
+function placementModeFor(card: HTMLElement): PlacementMode {
+  const rect = card.getBoundingClientRect();
+  const wide = rect.width > window.innerWidth * LARGE_CARD_WIDTH_RATIO;
+  return rect.height > LARGE_CARD_HEIGHT || wide ? 'price' : 'card';
 }
 
 export interface BadgeController {
@@ -65,23 +106,38 @@ export function createBadgeController(): BadgeController {
     if (destroyed || placements.length === 0) return;
     const origin = overlayOrigin();
     for (const placement of placements) {
-      const rect = placement.element.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0) {
+      const cardRect = placement.element.getBoundingClientRect();
+      if (cardRect.width === 0 && cardRect.height === 0) {
         placement.node.style.display = 'none';
         if (placement.outline) placement.outline.style.display = 'none';
         continue;
       }
-      const top = rect.top + window.scrollY - origin.y;
-      const left = rect.left + window.scrollX - origin.x;
       placement.node.style.display = '';
-      placement.node.style.top = `${Math.round(top + 6)}px`;
-      placement.node.style.left = `${Math.round(left + 6)}px`;
+
+      if (placement.mode === 'price') {
+        const priceRect = textRect(placement.anchor);
+        const base = priceRect.width > 0 || priceRect.height > 0 ? priceRect : cardRect;
+        const badgeWidth = placement.node.offsetWidth || 140;
+        const fitsBeside = base.right + 8 + badgeWidth < window.innerWidth;
+        const top = (fitsBeside ? base.top : base.bottom + 6) + window.scrollY - origin.y;
+        const left = (fitsBeside ? base.right + 8 : base.left) + window.scrollX - origin.x;
+        placement.node.style.top = `${Math.round(top)}px`;
+        placement.node.style.left = `${Math.round(left)}px`;
+      } else {
+        const top = cardRect.top + window.scrollY - origin.y;
+        const left = cardRect.left + window.scrollX - origin.x;
+        placement.node.style.top = `${Math.round(top + 6)}px`;
+        placement.node.style.left = `${Math.round(left + 6)}px`;
+      }
+
       if (placement.outline) {
+        const top = cardRect.top + window.scrollY - origin.y;
+        const left = cardRect.left + window.scrollX - origin.x;
         placement.outline.style.display = '';
         placement.outline.style.top = `${Math.round(top - 2)}px`;
         placement.outline.style.left = `${Math.round(left - 2)}px`;
-        placement.outline.style.width = `${Math.round(rect.width)}px`;
-        placement.outline.style.height = `${Math.round(rect.height)}px`;
+        placement.outline.style.width = `${Math.round(cardRect.width)}px`;
+        placement.outline.style.height = `${Math.round(cardRect.height)}px`;
       }
     }
   }
@@ -153,7 +209,7 @@ export function createBadgeController(): BadgeController {
 
     if (group.members.length > 1) {
       const ratio = group.best.pricePerBase > 0 ? member.pricePerBase / group.best.pricePerBase : 1;
-      node.appendChild(el('div', 'tag', isBest ? 'Best value' : `${formatMultiplier(ratio)} the best rate`));
+      node.appendChild(el('div', 'tag', isBest ? 'Best value' : `${formatMultiplier(ratio)} vs best`));
     }
 
     const openComparison = (): void => {
@@ -266,7 +322,14 @@ export function createBadgeController(): BadgeController {
             layer.appendChild(outline);
           }
 
-          placements.push({ itemId: member.item.id, element: target.element, node, outline });
+          placements.push({
+            itemId: member.item.id,
+            element: target.element,
+            anchor: target.anchor ?? target.element,
+            mode: placementModeFor(target.element),
+            node,
+            outline,
+          });
           drawn += 1;
         }
       }

@@ -46,8 +46,8 @@ report. Given `Bulk Total Price`, `Number of Units in Case` and
 
 | Option | Total Volume / Quantity | Total Cost | Unit Cost (per item) | Cost per 100 mL |
 | --- | --- | --- | --- | --- |
-| **24-can case** (bulk) | 8517.18 mL (24 × 354.88 mL) | $18.99 | $0.79 | $0.22 |
-| **Single can** (single) | 354.88 mL | $1.79 | $1.79 | $0.50 |
+| **24-can case** (bulk) | 8,517 mL (24 × 354.9 mL) | $18.99 | $0.79 | $0.22 |
+| **Single can** (single) | 354.9 mL | $1.79 | $1.79 | $0.50 |
 
 ### Dollar-for-Dollar Value Analysis
 
@@ -73,6 +73,12 @@ What $1.00 buys:
 
 Based on regular shelf pricing only — manufacturer coupons, seasonal flyers and
 loyalty tier discounts are deliberately excluded.
+
+When the two options do not hold the same individual unit — a 1.5 L bottle
+against a 330 ml can — per-item savings go negative even though the pack is
+much better value. The report notices, says so, and switches the whole
+narrative to measure (saving per 100 mL, extra mL for the same spend) rather
+than printing two figures that contradict each other.
 
 Two figures in that last section are routinely confused and are reported
 separately here: halving the unit cost is a **50% discount** but a **2.00x
@@ -142,7 +148,7 @@ returns nothing rather than inventing a size. It handles:
 | `Pack of 6, 60 g each` | 6 units, 360 g |
 | `2 lb 4 oz` | 1020.58 g (compound) |
 | `1.5 lb (680 g)` | 680.39 g (parenthetical restatement, not multiplied) |
-| `30 Rolls, 425 Sheets per Roll` | 12750 sheets, pack of 30 |
+| `30 Rolls, 425 Sheets per Roll` | 12,750 sheets, pack of 30 |
 | `24 Family Mega Rolls` | 24 rolls (count noun separated by adjectives) |
 | `200 mg, 300 tablets` | 60 g, 200 mg a tablet |
 | `8 packs, 42 wipes each` | 336 wipes, pack of 8 |
@@ -215,9 +221,27 @@ npm run build:watch    # rebuild on change
 npm run test           # builds, then runs the suite
 npm run typecheck      # tsc --noEmit
 npm run verify         # typecheck + test
+npm run e2e            # load the extension into real Chromium and drive it
 npm run icons          # regenerate assets/icons from the vector mark
 node tools/generate-icons.mjs --preview 32   # ASCII preview of the icon
 ```
+
+### Testing in a real browser
+
+`npm run e2e` serves a fixture storefront, installs the built extension into
+Chromium and drives it, writing screenshots to `.e2e/screens/`. It runs in two
+phases, because the privacy posture is as much a feature as the output:
+
+- **Phase A** loads the shipped build with no site permission and asserts the
+  extension registers nothing and injects nothing.
+- **Phase B** loads the same build with localhost granted — exactly the state
+  pressing *Always run here* produces — and asserts it scans, ranks, badges,
+  outlines the winner, opens the analysis panel, reads a JSON-LD product page,
+  and drives the popup, with no console errors.
+
+Chrome has no API to grant an optional permission without a real click on the
+toolbar icon, which no automation can drive, so phase B declares the origin in
+a copy of the manifest. The extension's own code is untouched.
 
 ```
 src/

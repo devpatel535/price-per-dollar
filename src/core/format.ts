@@ -55,11 +55,30 @@ export function resetFormatterCache(): void {
   currencyFormatterCache = new Map();
 }
 
-/** Trim trailing zeros from a measurement: `500.00` -> `500`, `1.50` -> `1.5`. */
-export function formatMeasure(value: number, maxPlaces = 2): string {
-  const rounded = round(value, maxPlaces);
-  if (Number.isInteger(rounded)) return String(rounded);
-  return String(Number(rounded.toFixed(maxPlaces)));
+/**
+ * Format a measurement for reading.
+ *
+ * Precision scales with magnitude, because two decimals on 5758.69 mL is noise
+ * while two decimals on 38.52 mL is the answer. Large numbers get digit
+ * grouping so `12750 sheets` reads as `12,750`.
+ */
+export function formatMeasure(value: number, maxPlaces?: number): string {
+  const magnitude = Math.abs(value);
+  const places = maxPlaces ?? (magnitude >= 1000 ? 0 : magnitude >= 100 ? 1 : 2);
+  const rounded = round(value, places);
+  try {
+    return new Intl.NumberFormat(undefined, {
+      maximumFractionDigits: places,
+      minimumFractionDigits: 0,
+    }).format(rounded);
+  } catch {
+    return String(Number(rounded.toFixed(places)));
+  }
+}
+
+/** A measurement as a bare number, safe to put in a numeric input. */
+export function measureToInputValue(value: number, places = 4): string {
+  return String(round(value, places));
 }
 
 /** `1.6` -> `"1.60x"`. */
