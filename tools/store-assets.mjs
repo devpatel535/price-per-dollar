@@ -217,14 +217,14 @@ function marquee(icon) {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 1400px; height: 560px; overflow: hidden; }
     body {
-      display: flex; align-items: center; gap: 56px; padding: 0 90px;
+      display: flex; align-items: center; justify-content: center; gap: 56px; padding: 0 90px;
       font-family: ${FONT};
       background: linear-gradient(140deg, #4f46e5 0%, #0f766e 100%);
       color: #f8fafc;
     }
     img { width: 168px; height: 168px; border-radius: 40px; box-shadow: 0 18px 48px rgba(0,0,0,.3); flex: none; }
     h1 { font-size: 62px; font-weight: 800; letter-spacing: -0.02em; }
-    p { margin-top: 18px; font-size: 25px; line-height: 1.45; color: rgba(248,250,252,.9); max-width: 780px; }
+    p { margin-top: 18px; font-size: 25px; line-height: 1.45; color: rgba(248,250,252,.9); max-width: 720px; }
     .tag { margin-top: 22px; display: inline-block; padding: 8px 16px; border-radius: 999px;
            background: rgba(15,23,42,.28); font-size: 17px; font-weight: 600; }
   </style></head><body>
