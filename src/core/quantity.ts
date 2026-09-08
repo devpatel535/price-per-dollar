@@ -33,16 +33,36 @@ const IRREGULAR_SINGULARS: Record<string, string> = {
   leaves: 'leaf', loaves: 'loaf', knives: 'knife', feet: 'foot',
 };
 
-/** Reduce a count noun to a canonical singular, collapsing generic nouns to `ct`. */
-export function singulariseCountNoun(raw: string): string {
+/** Reduce a count noun to its singular form, keeping the specific word. */
+export function singulariseNoun(raw: string): string {
   const word = normaliseAlias(raw).replace(/\s+/g, '-');
   const direct = IRREGULAR_SINGULARS[word];
-  let singular = direct ?? word;
-  if (!direct && singular.length > 3 && singular.endsWith('s') && !singular.endsWith('ss')) {
-    singular = singular.slice(0, -1);
-  }
+  if (direct) return direct;
+  if (word.length > 3 && word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+  return word;
+}
+
+/** As `singulariseNoun`, but collapsing nouns that identify nothing to `ct`. */
+export function singulariseCountNoun(raw: string): string {
+  const singular = singulariseNoun(raw);
   return GENERIC_COUNT_NOUNS.has(singular) ? 'ct' : singular;
 }
+
+/**
+ * Count nouns whose stated measure describes one of the things, not the box.
+ *
+ * `40 bottles, 16.9 fl oz` means each bottle holds 16.9 fl oz, so the sizes
+ * multiply. `48 pieces, 600 g` means the box weighs 600 g, so they do not.
+ * The noun is the only thing distinguishing those two sentences.
+ */
+const PER_UNIT_COUNT_NOUNS = new Set([
+  'bottle', 'can', 'jar', 'box', 'carton', 'pouch', 'tub', 'tube', 'bag',
+  'packet', 'sachet', 'canister', 'cup', 'tray', 'pack', 'pk', 'pkg',
+  'package', 'case', 'sleeve', 'k-cup', 'kcup', 'cartridge',
+]);
+
+/** An explicit statement that a size is per item rather than for the package. */
+const PER_ITEM_SIGNAL = /\b(each|apiece)\b/;
 
 const UNICODE_FRACTIONS: Record<string, string> = {
   '½': '.5', '⅓': '.3333333333', '⅔': '.6666666667', '¼': '.25', '¾': '.75',
@@ -145,6 +165,8 @@ interface MeasureMatch {
   value: number;
   unit: UnitDef;
   countNoun?: string;
+  /** The count noun as written, before generic nouns collapse to `ct`. */
+  rawNoun?: string;
   index: number;
   end: number;
   raw: string;
@@ -165,7 +187,9 @@ function makeMeasure(
   return {
     value,
     unit,
-    ...(unit.dimension === 'count' ? { countNoun: singulariseCountNoun(aliasText) } : {}),
+    ...(unit.dimension === 'count'
+      ? { countNoun: singulariseCountNoun(aliasText), rawNoun: singulariseNoun(aliasText) }
+      : {}),
     index,
     end,
     raw,
@@ -264,6 +288,11 @@ export interface ParseQuantityOptions {
   removePrices?: boolean;
 }
 
+/** Trim binary-float noise so `1.55 x 36` reports 55.8 and not 55.80000000000001. */
+function tidy(value: number): number {
+  return Number.isFinite(value) ? Number(value.toPrecision(12)) : value;
+}
+
 function buildQuantity(
   total: { value: number; unit: UnitDef; countNoun?: string | undefined },
   packCount: number,
@@ -271,10 +300,11 @@ function buildQuantity(
   confidence: number,
   alternates: QuantityView[] = [],
 ): Quantity {
-  const base = toBase(total.value, total.unit);
+  const value = tidy(total.value);
+  const base = tidy(toBase(value, total.unit));
   const safePack = packCount > 0 ? packCount : 1;
   return {
-    value: total.value,
+    value,
     unit: total.unit,
     dimension: total.unit.dimension,
     base,
@@ -389,23 +419,43 @@ export function parseQuantity(input: string, options: ParseQuantityOptions = {})
 
   const primarySized = sized[0];
 
-  // 4. `12 fl oz, 24 pack` — a unit size plus a pack count that multiplies it.
+  // 4. A unit size stated alongside a pack count, e.g. `12 fl oz, 24 pack`.
   if (primarySized) {
-    const multiplierCount = counts.find(
-      (c) => c.countNoun && MULTIPLIER_NOUNS.has(c.countNoun) && c.index !== primarySized.index,
+    const packCount = counts.find(
+      (c) => c.countNoun && MULTIPLIER_NOUNS.has(c.countNoun)
+        && c.index !== primarySized.index && c.value > 1,
     );
-    if (multiplierCount && multiplierCount.value > 1) {
+    if (packCount) {
       const alternates: QuantityView[] = [{
-        value: multiplierCount.value,
-        unit: multiplierCount.unit,
-        base: toBase(multiplierCount.value, multiplierCount.unit),
-        countNoun: multiplierCount.countNoun ?? 'ct',
+        value: packCount.value,
+        unit: packCount.unit,
+        base: toBase(packCount.value, packCount.unit),
+        countNoun: packCount.countNoun ?? 'ct',
       }];
+
+      // Whether the two multiply is the crux of the whole parser. A size
+      // written before its count is always per item (`12 fl oz, 24 pack`), as
+      // is one marked `each`. Otherwise only a container noun implies the
+      // measure describes one of the things rather than the package total.
+      const measureStatedFirst = primarySized.index < packCount.index;
+      const perItemNoun = !!packCount.rawNoun && PER_UNIT_COUNT_NOUNS.has(packCount.rawNoun);
+      const multiplies = measureStatedFirst || PER_ITEM_SIGNAL.test(text) || perItemNoun;
+
+      if (multiplies) {
+        return buildQuantity(
+          { value: primarySized.value * packCount.value, unit: primarySized.unit },
+          packCount.value,
+          `${packCount.raw} x ${primarySized.raw}`,
+          0.85,
+          alternates,
+        );
+      }
+      // The size is the package total; the count still tells us the pack size.
       return buildQuantity(
-        { value: primarySized.value * multiplierCount.value, unit: primarySized.unit },
-        multiplierCount.value,
-        `${multiplierCount.raw} x ${primarySized.raw}`,
-        0.85,
+        { value: primarySized.value, unit: primarySized.unit },
+        packCount.value,
+        `${primarySized.raw} across ${packCount.raw}`,
+        0.75,
         alternates,
       );
     }

@@ -106,6 +106,38 @@ describe('parseQuantity — packs', () => {
   });
 });
 
+describe('parseQuantity — does a pack count multiply the stated size?', () => {
+  it('multiplies when the size is written before the count', () => {
+    expect(q('Dove Beauty Bar, 3.75 oz, 14 bars')).toMatchObject({ packCount: 14 });
+    expect(q('Dove Beauty Bar, 3.75 oz, 14 bars')!.value).toBe(52.5);
+  });
+
+  it('multiplies when the size is marked as being per item', () => {
+    const parsed = q('Nature Valley Granola Bars, 49 bars, 1.49 oz each');
+    expect(parsed).toMatchObject({ packCount: 49 });
+    expect(parsed!.value).toBe(73.01);
+  });
+
+  it('multiplies a container count by the capacity of one container', () => {
+    // 16.9 fl oz is what one bottle holds, so forty of them is forty times that.
+    const parsed = q('Purified Drinking Water, 40 bottles, 16.9 fl oz');
+    expect(parsed).toMatchObject({ packCount: 40 });
+    expect(parsed!.value).toBe(676);
+  });
+
+  it('does not multiply a package total by the number of things in it', () => {
+    // 600 g is what the box weighs, not what each chocolate weighs.
+    const parsed = q('Ferrero Rocher Chocolates, 48 pieces, 600g');
+    expect(parsed).toMatchObject({ dimension: 'mass', packCount: 48 });
+    expect(parsed!.base).toBe(600);
+    expect(parsed!.basePerItem).toBe(12.5);
+  });
+
+  it('reports clean numbers rather than float noise', () => {
+    expect(q('Hershey Milk Chocolate Bars, 1.55 oz, 36-count box')!.value).toBe(55.8);
+  });
+});
+
 describe('parseQuantity — traps', () => {
   it('does not multiply by a usage yield', () => {
     const parsed = q('Tide Liquid Detergent, 154 fl oz (96 loads)');

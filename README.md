@@ -144,8 +144,16 @@ returns nothing rather than inventing a size. It handles:
 | `1.5 lb (680 g)` | 680.39 g (parenthetical restatement, not multiplied) |
 | `30 Rolls, 425 Sheets per Roll` | 12750 sheets, pack of 30 |
 | `24 Family Mega Rolls` | 24 rolls (count noun separated by adjectives) |
+| `40 bottles, 16.9 fl oz` | 19992 mL — a bottle's capacity multiplies by the count |
+| `48 pieces, 600 g` | 600 g — a box's weight does **not** multiply by the count |
 | `154 fl oz (96 loads)` | 4554 mL — a usage yield is **not** a pack multiplier |
 | `Wireless Mouse` | nothing; the item is listed but not ranked |
+
+Whether a pack count multiplies a stated size is the crux of the whole parser,
+and it turns on the noun. A size written before its count is per item
+(`12 fl oz, 24 pack`), as is one marked `each`. Otherwise only a *container*
+noun implies the measure describes one of the things: forty bottles of 16.9 fl
+oz is forty times that, while forty-eight chocolates in a 600 g box is not.
 
 ### Deciding what compares with what
 
