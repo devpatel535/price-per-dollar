@@ -97,7 +97,8 @@ npm run build
 ```
 
 Then in Chrome: `chrome://extensions` → enable **Developer mode** → **Load
-unpacked** → select the `dist/` folder.
+unpacked** → select the `dist/` folder. (Load `dist/`, not the repository root —
+the repository is the source, and `dist/` is the extension.)
 
 Open any shopping page and click the toolbar icon (or press <kbd>Alt</kbd>
 <kbd>Shift</kbd><kbd>P</kbd>).
@@ -276,6 +277,13 @@ to do if a review comes back.
 npm run package        # build, verify, and write release/price-per-dollar-<version>.zip
 npm run store:assets   # 1280x800 screenshots, promo tile, marquee
 ```
+
+**Upload the built package, not the source.** GitHub's "Download ZIP" gives you
+the repository, which the store rejects with a confusing wall of text listing
+every file in it. The package to upload is on the
+[Releases page](https://github.com/devpatel535/price-per-dollar/releases), or
+build it with `npm run package`. The right zip has `manifest.json` at its top
+level and contains 14 files.
 
 `npm run package` will not produce a zip unless the pre-submission checks pass.
 They cover the things the store rejects for: a malformed manifest, a missing or

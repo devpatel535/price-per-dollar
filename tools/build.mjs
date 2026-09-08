@@ -48,8 +48,12 @@ function copyStatic() {
     fs.writeFileSync(path.join(dist, 'icons', `icon${size}.png`), encodePng(renderIcon(size), size));
   }
 
+  // Deliberately not named `manifest.json`. GitHub's "Download ZIP" of this
+  // repository would otherwise contain a file the Chrome Web Store mistakes for
+  // an extension root, and the resulting rejection names every file in the repo
+  // rather than saying the obvious thing: that is the source, not the package.
   // The manifest version is owned by package.json so a release only bumps once.
-  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8'));
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.base.json'), 'utf8'));
   manifest.version = pkg.version;
   fs.writeFileSync(path.join(dist, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 }

@@ -78,9 +78,41 @@ the toolbar icon.
 Developer dashboard → **Add new item** → drag in
 `release/price-per-dollar-1.0.0.zip`.
 
-Upload the `.zip`, not the `dist/` folder and not a folder containing the zip.
+> ### Upload the built package, not the source
+>
+> **Do not upload GitHub's "Download ZIP".** That gives you the *repository* —
+> README, tests, tooling, and a `src/manifest.base.json` — not the extension.
+> The store scans it, decides some inner folder is the extension root, and
+> rejects it with a wall of text listing every file in the repository:
+>
+> > *Files outside directory with manifest `…/src/` are not allowed: …*
+>
+> If you see that error, you uploaded the wrong zip.
 
----
+The package you want is the one built by `npm run package`. You can tell them
+apart in one look — the right zip has `manifest.json` at the **top level** and
+contains 14 files:
+
+```
+$ unzip -l release/price-per-dollar-1.0.0.zip
+    manifest.json          <- at the root, not inside any folder
+    content/index.js
+    popup/index.html
+    popup/popup.js
+    popup/popup.css
+    background/service-worker.js
+    icons/icon16.png … icon128.png
+```
+
+Three ways to get it, in order of convenience:
+
+1. **Download it from the repository's Releases page** —
+   <https://github.com/devpatel535/price-per-dollar/releases> — the asset named
+   `price-per-dollar-<version>.zip`.
+2. **Build it:** `npm install && npm run package`.
+3. **From a CI run:** the `price-per-dollar-zip` artifact on any green build.
+
+Upload the `.zip` itself — not a folder, and not a zip containing the zip.
 
 ## 4. Store listing tab
 
